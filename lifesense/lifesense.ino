@@ -38,9 +38,6 @@ int PORT = 4033;
 WiFiServer server(80);
 WiFiClient client;
 int statusConfig = 0;
-int sentOnce = 0;
-int sentConnection = 0;
-int sentHandshake = 0;
 String currentLine = "";
 String token = "";
 void setup()
@@ -115,25 +112,16 @@ void pushToServer() {
   }
 
   // Update 
-  if(client.connected() && !sentOnce) {
-    //pushUpdate("{\"weight\":"+analogPin0 + ", \"sensor\":\"" + digitalPin + "\"}\n\n");
-    trySocket();
-    sentOnce = 1;
+  if(client.connected()) {
+    pushUpdate("{\"weight\":"+analogPin0 + ", \"sensor\":\"" + digitalPin + "\"}\n\n");
   }
-  
-  if(client.connected() && !sentOnce && sentConnection && !sentHandshake) {
-    //pushUpdate("{\"weight\":"+analogPin0 + ", \"sensor\":\"" + digitalPin + "\"}\n\n");
-    trySendHandshake();
-     sentHandshake = 1;
-  }
-
   // Print Update Response to Serial Monitor
   //int abc = 0;
   
   while (client.available()) {
-    parseSocket();
-    //char c = client.read();
-    //Serial.print(c);
+   
+    char c = client.read();
+    Serial.print(c);
   }
   // Check if WiFi needs to be restarted
   if (failedCounter > 3 ) {
@@ -143,73 +131,7 @@ void pushToServer() {
   }
 }
 
-void trySocket() {
-  client.print("GET /socket.io/?EIO=3&transport=polling&t=1417195868547-0 HTTP/1.1\n");
-  client.print("Host: localhost:4033\n");
-  client.print("Connection: keep-alive\n");
-  client.print("Accept: \*/\*\n");
-  //client.print("Cookie: io=jBYZPk7x9zZWL23EAAAA;\n");
- // client.print("Content-Type: application/json\n");
- // client.print("Content-Length: ");
 
- // client.print(tsData.length());
-  client.print("\n\n");
-  //client.print(tsData);
-}
-void trySendHandshake() {
-  String header = "GET /socket.io/?EIO=3&transport=polling&t=1417195869547-0&sid=";
-  header += token;
-  header += " HTTP/1.1\n";
-  client.print(header);
-  client.print("Host: localhost:4033\n");
-  client.print("Connection: keep-alive\n");
-  client.print("Accept: \*/\*\n");
-  //client.print("Cookie: io=jBYZPk7x9zZWL23EAAAA;\n");
- // client.print("Content-Type: application/json\n");
- // client.print("Content-Length: ");
-
- // client.print(tsData.length());
-  client.print("\n");
- 
-  //client.print(tsData);
-}
-
-void parseSocket() {
-  
-  char c = client.read();             // read a byte, then
-  // This lockup is because the recv function is blocking.
-  //Serial.print(c);
-  if (c == '\n') {                    // if the byte is a newline character
-    // if the current line is blank, you got two newline characters in a row.
-    // that's the end of the client HTTP request, so send a response:
-    if (currentLine.length() == 0) {  
-      //break;  
-       //currentLine = "";
-       sentConnection = 1;
-       Serial.println("HERE"); 
-           
-    } 
-    else {      // if you got a newline, then clear currentLine:
-       Serial.println(currentLine); 
-      currentLine = "";
-    }
-  }     
-  else if (c != '\r') {    // if you got anything else but a carriage return character,
-    currentLine += c;      // add it to the end of the currentLine
-   //Serial.print("."); 
-  }
-   //Serial.println(currentLine);
-  if (currentLine.startsWith("Set-Cookie: io=")) {
-   // if (currentLine.length() > 0) {
-   if (c != '=') {
-     token += c;
-   }
-    statusConfig = 0;
-    //Serial.println("FOO");
-    //printIndex();
-  }
-
-}
 
 void pushUpdate(String tsData)
 {
