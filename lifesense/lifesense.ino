@@ -16,19 +16,20 @@ boolean lastConnected = false;
 int failedCounter = 0;
 int PORT = 4033;
 
-String currentLine = "";
-
 // Initialize WiFi Client
 WiFiServer server(80);
 WiFiClient client;
 int statusConfig = 0;
 
 int INPUT_PINS_SIZE = 7;
-char * INPUT_PINS_NAME[] = {"A0","A1","A2","A4","A5","A6","A7"};
+// These are the names we will send to the server
+char* INPUT_PINS_NAME[] = {"A0","A1","A2","A4","A5","A6","A7"};
 int INPUT_PINS[] = {A0,A1,A2,A4,A5,A6,A7};
 
-int OUTPUT_PINS_SIZE = 8;
-int OUTPUT_PINS[] = {A0,A1,A2,A3,A4,A5,A6,A7};
+int   OUTPUT_PINS_SIZE   = 8;
+// These are the names we are expecting the server to give us.
+char* OUTPUT_PINS_NAME[] = {"PF_1","PF_2","PF_3","PB_3","PC_4","PC_5","PC_6","PC_7","PD_6","PD_7","PF_4"};
+int   OUTPUT_PINS[]      = { PF_1 , PF_2 , PF_3 , PB_3 , PC_4 , PC_5 , PC_6 , PC_7 , PD_6 , PD_7 , PF_4 };
 
 void setInputPins() {
   if (DEBUG) Serial.println("Input Pins:  ");
@@ -37,6 +38,9 @@ void setInputPins() {
     pinMode(INPUT_PINS[i], INPUT);
   }
   if (DEBUG) Serial.println("");
+}
+
+void setOutputPins() {
 }
 
 void setup()
@@ -72,9 +76,7 @@ void loop()
     pushUpdate(data);
 
     // Read the response  
-    while (client.available()) {
-      parseResponse();
-    }
+    parseResponse();
   }
   else {
     reconnect();    
@@ -97,6 +99,7 @@ void readInputPins(String &result) {
   for (int i=0;i<INPUT_PINS_SIZE;i++) {
     result = result + "\"" + INPUT_PINS_NAME[i] + "\":";
     String value = String(analogRead(INPUT_PINS[i]), DEC);
+    //String value = String(i * 10000);
     result += value;
     if (i!=(INPUT_PINS_SIZE-1)) {
       result += ",";
@@ -122,7 +125,7 @@ void reconnect() {
 
     failedCounter++;
     delay(500);
-  }  
+  }
 }
 
 void pushUpdate(String tsData)
@@ -145,7 +148,8 @@ void pushUpdate(String tsData)
 }
 
 void parseResponse() {
-  if (client.available()) {   
+  String currentLine = "";
+  while (client.available()) {
     char c = client.read();             // read a byte, then
     // This lockup is because the recv function is blocking.
     Serial.print(c);
