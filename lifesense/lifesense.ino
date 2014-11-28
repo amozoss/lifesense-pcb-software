@@ -1,7 +1,7 @@
 #include <SPI.h>
 #include <WiFi.h>
 
-#define DEBUG 0
+#define DEBUG 1
 
 const IPAddress INADDR_NONE(0,0,0,0);
 char ssid[] = "cc3000"; 
@@ -41,6 +41,13 @@ void setInputPins() {
 }
 
 void setOutputPins() {
+  if (DEBUG) Serial.println("Output Pins:  ");
+  for (int i=0;i<INPUT_PINS_SIZE;i++) {
+    if (DEBUG) Serial.println(OUTPUT_PINS[i]);
+    pinMode(OUTPUT_PINS[i], OUTPUT);
+    digitalWrite(OUTPUT_PINS[i],LOW);
+  }
+  if (DEBUG) Serial.println("");
 }
 
 void setup()
@@ -49,6 +56,7 @@ void setup()
   Serial.begin(115200);
   
   setInputPins();
+  setOutputPins();
   
   pinMode(RED_LED, OUTPUT);
   pinMode(GREEN_LED, OUTPUT);
@@ -147,31 +155,69 @@ void pushUpdate(String tsData)
   if (DEBUG) Serial.println("pushed an update!");
 }
 
-void parseResponse() {
-  String currentLine = "";
-  while (client.available()) {
-    char c = client.read();             // read a byte, then
-    // This lockup is because the recv function is blocking.
-    Serial.print(c);
-    if (c == '\n') {                    // if the byte is a newline character
-      // if the current line is blank, you got two newline characters in a row.
-      // that's the end of the client HTTP request, so send a response:
-      if (currentLine.length() == 0) {  
-       // return;         
-      } 
-      else {      // if you got a newline, then clear currentLine:
-        currentLine = "";
+void setOutput(String key, String value) {
+  if (DEBUG) Serial.println("setOutput:  " + key + " , " + value);
+  // This is an ugly search, but is probably fast enough for such low values
+  for(int i=0;i<OUTPUT_PINS_SIZE;i++) {
+    // Converting these to strings everytime is probably slow too.
+    if (String(OUTPUT_PINS_NAME[i]) == key) {
+      if (value == "HIGH") {
+        if (DEBUG) Serial.println("Setting " + String(OUTPUT_PINS[i]) + " HIGH.");
+        digitalWrite(OUTPUT_PINS[i], HIGH);
       }
+      else if (value == "LOW") {
+        if (DEBUG) Serial.println("Setting " + String(OUTPUT_PINS[i]) + " LOW.");
+        digitalWrite(OUTPUT_PINS[i], LOW);
+      }
+      else {
+        Serial.println("Got unknown OUTPUT value '" + value + "' for key '" + key + "'.");
+      }
+      return;
+    }
+  } 
+  Serial.println("Could not find key '" + key + "' in OUTPUTS."); 
+}
+
+// This will read and parse a JSON response with key:value pairs
+//
+// It is NOT a true JSON parser, and does dumb things like
+// ignore all spaces, so don't expect it to handle arbitrary JSON.
+void parseResponse() {
+  String currentLine  = "";
+  String currentKey   = "";
+  String currentValue = "";
+  int foundJSON = 0;
+  while (client.available()) {
+    char c = client.read();
+    if (c == '{') foundJSON = 1;
+    if (!foundJSON) continue;
+    if (c == ' ' ||  // ignore ALL whitespace
+        c == '{' ||  // and some JSON characters
+        c == '"') continue;
+    
+    if (DEBUG) Serial.print(c);
+    if (c == '\n') {
+      currentLine = "";
     }     
-    else if (c != '\r') {    // if you got anything else but a carriage return character,
+    else if (c == '\r') {
+    }
+    else if (c == ':') {
+      currentKey = currentLine;
+      currentLine = "";
+    }
+    else if (c == ',' || c == '}') {
+      currentValue = currentLine;
+      setOutput(currentKey, currentValue);
+      currentKey  = "";
+      currentValue= "";
+      currentLine = "";
+    }
+    else {
       currentLine += c;      // add it to the end of the currentLine
     }
-
-    if (currentLine.endsWith("RED ON")) {digitalWrite(RED_LED, HIGH);}         
-    if (currentLine.endsWith("RED OFF")) {digitalWrite(RED_LED, LOW);}
-    if (currentLine.endsWith("GREEN ON")) {digitalWrite(GREEN_LED, HIGH);}       
-    if (currentLine.endsWith("GREEN OFF")) {digitalWrite(GREEN_LED, LOW);}
   }
+  if (DEBUG) Serial.println();
+  if (DEBUG) Serial.println();
 }
 
 void startWiFi()
