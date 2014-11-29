@@ -39,7 +39,6 @@ WiFiServer server(80);
 WiFiClient client;
 int statusConfig = 0;
 String currentLine = "";
-String token = "";
 void setup()
 {
   // Start Serial for debugging on the Serial Monitor
@@ -114,14 +113,15 @@ void pushToServer() {
   // Update 
   if(client.connected()) {
     pushUpdate("{\"weight\":"+analogPin0 + ", \"sensor\":\"" + digitalPin + "\"}\n\n");
+    //getLeds();
   }
   // Print Update Response to Serial Monitor
   //int abc = 0;
   
   while (client.available()) {
-   
-    char c = client.read();
-    Serial.print(c);
+    parseResponse();
+    //char c = client.read();
+    //Serial.print(c);
   }
   // Check if WiFi needs to be restarted
   if (failedCounter > 3 ) {
@@ -150,6 +150,34 @@ void pushUpdate(String tsData)
   //Serial.println("Updated!");
 }
 
+void parseResponse() {
+  if (client.available()) {   
+    char c = client.read();             // read a byte, then
+    // This lockup is because the recv function is blocking.
+    Serial.print(c);
+    if (c == '\n') {                    // if the byte is a newline character
+      // if the current line is blank, you got two newline characters in a row.
+      // that's the end of the client HTTP request, so send a response:
+      if (currentLine.length() == 0) {  
+       // return;         
+      } 
+      else {      // if you got a newline, then clear currentLine:
+        currentLine = "";
+      }
+    }     
+    else if (c != '\r') {    // if you got anything else but a carriage return character,
+      currentLine += c;      // add it to the end of the currentLine
+    }
+    if (currentLine.endsWith("GET / ")) {
+      statusConfig = 0;
+      printIndex();
+    }
+    if (currentLine.endsWith("RED ON")) {digitalWrite(RED_LED, HIGH);printConfig();}         
+    if (currentLine.endsWith("RED OFF")) {digitalWrite(RED_LED, LOW);printConfig();}     
+    if (currentLine.endsWith("GREEN ON")) {digitalWrite(GREEN_LED, HIGH);printConfig();}       
+    if (currentLine.endsWith("GREEN OFF")) {digitalWrite(GREEN_LED, LOW);printConfig();}
+  }
+}
 void startWiFi()
 {
   digitalWrite(RED_LED, HIGH);
