@@ -1,11 +1,12 @@
 #include <SPI.h>
 #include <WiFi.h>
 
-#define DEBUG 1
+#define DEBUG 0
 
 const IPAddress INADDR_NONE(0,0,0,0);
 char ssid[] = "cc3000"; 
-char pass[] = "coolestever"; 
+char pass[] = "coolestever";
+const String token = "";
 
 // Settings
 IPAddress hostIp(192,168,150,1);
@@ -78,7 +79,8 @@ void loop()
 {
   if (client.connected()) {
     // Start building our JSON data payload
-    String data = "{";
+    String data = "{ \"transmitter_token\":";
+    data += "\""+ token +"\",";
     readInputPins(data);
     data += "}\n\n";
     pushUpdate(data);
@@ -161,12 +163,12 @@ void setOutput(String key, String value) {
   for(int i=0;i<OUTPUT_PINS_SIZE;i++) {
     // Converting these to strings everytime is probably slow too.
     if (String(OUTPUT_PINS_NAME[i]) == key) {
-      if (value == "HIGH") {
-        if (DEBUG) Serial.println("Setting " + String(OUTPUT_PINS[i]) + " HIGH.");
+      if (value == "true") {
+        if (DEBUG) Serial.println("Setting " + String(OUTPUT_PINS[i]) + " true.");
         digitalWrite(OUTPUT_PINS[i], HIGH);
       }
-      else if (value == "LOW") {
-        if (DEBUG) Serial.println("Setting " + String(OUTPUT_PINS[i]) + " LOW.");
+      else if (value == "false") {
+        if (DEBUG) Serial.println("Setting " + String(OUTPUT_PINS[i]) + " false.");
         digitalWrite(OUTPUT_PINS[i], LOW);
       }
       else {
