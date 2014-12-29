@@ -8,7 +8,7 @@ The program depends on the libraries in the 0101E0012 release of Energia. It can
 
 In order to transmit data: 
 
-Update the `char ssid[]` and `char pass[]` with your access point information (the cc3000 does not connect to ad-hoc networks). 
+Update `char ssid[]` and `char pass[]` with your access point information (the cc3000 does not connect to ad-hoc networks). 
 
 Update `const String token` with the token created on [lifesense](https://github.com/amozoss/lifesense) website.
 
